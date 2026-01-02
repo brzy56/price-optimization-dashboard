@@ -12,9 +12,21 @@ def load_data(file_source):
     if file_source == "Default: Fashion Boutique":
         return pd.read_csv("fashion_boutique_dataset.csv")
     elif file_source == "Tech Sales (Placeholder)":
-        return pd.DataFrame({"item": ["Laptop"], "current_price": [1000], "markdown_percentage": [0], "is_returned": [False]})
+        return pd.DataFrame({
+            "category": ["Electronics", "Electronics"],
+            "item": ["Laptop", "Tablet"], 
+            "current_price": [1200, 600], 
+            "markdown_percentage": [5, 10], 
+            "is_returned": [False, True]
+        })
     elif file_source == "Grocery Data (Placeholder)":
-        return pd.DataFrame({"item": ["Apple"], "current_price": [1], "markdown_percentage": [0], "is_returned": [False]})
+        return pd.DataFrame({
+            "category": ["Produce", "Produce"],
+            "item": ["Apple", "Orange"], 
+            "current_price": [2, 3], 
+            "markdown_percentage": [0, 20], 
+            "is_returned": [False, False]
+        })
     else:
         return pd.read_csv(file_source)
 
@@ -42,12 +54,14 @@ if 'is_returned' in df.columns:
 st.markdown("# REVENUE AND PRICE OPTIMIZATION STRATEGY")
 st.markdown("---")
 
+# Instruction Text
+st.markdown("Adjust the **Price Slider** to test different scenarios and view the impact on revenue in the summary below.")
+
+# Technical Bullets
 st.markdown("""
-**DASHBOARD GUIDE**
-* **How to use:** Adjust the **Price Slider** to test scenarios, then check the **Executive Summary** to see how that change impacts your bottom line.
 * **Price Sensitivity:** Analyzes how customer demand shifts when you change your prices.
 * **Revenue Simulation:** Manually test pricing scenarios to see predicted sales volume and revenue impact.
-* **Revenue Maximization:** Uses a quadratic formula ($Price \\times Volume$) to identify the mathematical peak where profit and volume are perfectly balanced.
+* **Revenue Maximization:** Identifies the mathematical peak where profit and volume are perfectly balanced.
 * **Return Analysis:** Monitors if deep discounting is accidentally driving up your return rates.
 """)
 
@@ -91,9 +105,9 @@ with col_sim1:
         st.session_state.price_slider = optimal_p
 
     st.caption(f"""
-    **STRATEGIC OPTIMIZATION:** Click the button above to instantly align the slider with the **{optimal_p}%** price point. 
-    This identifies the equilibrium where price changes are perfectly balanced against potential volume loss, 
-    resulting in maximum total revenue.
+    **STRATEGIC OPTIMIZATION:** Click the button above to automatically align the slider with the 
+    recommended price point. This identifies the balance where price changes are offset by 
+    volume shifts to reach the highest possible total revenue.
     """)
     
     # Impact Calculations
@@ -110,23 +124,23 @@ with col_sim1:
 
 with col_sim2:
     # EXECUTIVE IMPACT SUMMARY
-    diff_symbol = "+" if revenue_delta >= 0 else ""
-
-    st.markdown(f"""
-    **EXECUTIVE IMPACT SUMMARY**
-    * **Target Price Change:** `{price_change}%`
-    * **Predicted Volume Shift:** `{ (demand_impact * 100):.1f}%`
-    * **New Projected Total:** `${new_revenue:,.2f} ({diff_symbol}${revenue_delta:,.2f} vs current)`
-    * **Return Risk Level:** `{return_risk}` ({risk_msg})
-    """)
-
-    # DYNAMIC BOTTOM LINE SUMMARY
-    # We use st.info to make this stand out as the key takeaway
+    st.markdown("**EXECUTIVE IMPACT SUMMARY**")
+    
     direction = "increase" if demand_impact > 0 else "decrease"
     change_type = "extra" if revenue_delta >= 0 else "loss of"
     
-    st.info(f"**The Bottom Line:** By adjusting our price by **{price_change}%**, we expect sales volume to **{direction}** by **{abs(demand_impact * 100):.1f}%**. This results in an estimated total revenue of **${new_revenue:,.2f}**, which is a **{change_type} ${abs(revenue_delta):,.2f}** compared to today.")
+    # The Dynamic Summary Sentence
+    st.info(f"""
+    **ONE-SENTENCE SUMMARY (Updates with slider):** By adjusting our price by **{price_change}%**, we expect sales volume to **{direction}** by **{abs(demand_impact * 100):.1f}%**, 
+    resulting in a total revenue of **${new_revenue:,.2f}** (a **{change_type} ${abs(revenue_delta):,.2f}** vs. current).
+    """)
 
+    # Supporting Data Points
+    st.markdown(f"""
+    * **Target Price Change:** `{price_change}%`
+    * **Predicted Volume Shift:** `{ (demand_impact * 100):.1f}%`
+    * **Return Risk Level:** `{return_risk}` ({risk_msg})
+    """)
     st.markdown("---")
 
     # Revenue Curve Visualization
@@ -148,15 +162,25 @@ st.markdown("### **RETURN LOGISTICS ANALYSIS**")
 
 st.markdown("""
 **GRAPH INTERPRETATION:**
-* **Objective:** Determine if deeper markdowns lead to more frequent returns.
+* **Objective:** Determine if deeper markdowns lead to more frequent returns by category.
 * **Data Breakdown:** Comparing items that were **Returned (True)** vs. items that were **Kept (False)**.
-* **What to look for:** If the 'True' boxes sit higher on the chart than the 'False' boxes, it shows that deep discounts are causing higher return rates for that category.
+* **What to look for:** If the 'True' boxes sit higher on the chart than the 'False' boxes, it shows that deep discounts are causing higher return rates for that specific product group.
 """)
 
-if 'is_returned' in df.columns:
+
+
+if 'is_returned' in df.columns and 'category' in df.columns:
+    # Logic to find the highest return category
     return_rate = (df['is_returned'].sum() / len(df)) * 100
-    st.info(f"**LIVE DATA INSIGHT:** Currently, **{return_rate:.1f}%** of all items in this dataset were returned. "
-            "This percentage updates automatically if you switch datasets or upload new files.")
+    cat_returns = df.groupby('category')['is_returned'].mean().sort_values(ascending=False)
+    top_cat = cat_returns.index[0]
+    top_rate = cat_returns.values[0] * 100
+
+    st.info(f"""
+    **CURRENT DATA SUMMARY:** Our overall rate of return across all categories is **{return_rate:.1f}%**. 
+    The highest return rate is currently in the **{top_cat}** category, where items are returned at a rate of **{top_rate:.1f}%**. 
+    *This summary refreshes automatically whenever new data is selected or uploaded.*
+    """)
 
     fig_box = px.box(df, x='category', y='markdown_percentage', color='is_returned',
                      title="HOW MARKDOWNS IMPACT RETURNS BY CATEGORY",
