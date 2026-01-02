@@ -97,8 +97,64 @@ with col_sim1:
     new_revenue = total_revenue * (1 + (price_change/100)) * (1 + demand_impact)
     revenue_delta = new_revenue - total_revenue
     
-    # Return Risk Logic
+# Return Risk Logic
     return_risk = "LOW"
     risk_msg = "Stable return patterns expected."
     if price_change < -25:
-        return_risk = "HIGH
+        return_risk = "HIGH"
+        risk_msg = "Deep discounts historically increase returns due to impulse buying."
+
+with col_sim2:
+    # EXECUTIVE IMPACT SUMMARY
+    diff_symbol = "+" if revenue_delta >= 0 else ""
+    is_optimized = "STATUS: OPTIMIZED" if abs(price_change - optimal_p) < 1 else "STATUS: SUB-OPTIMAL"
+
+    st.markdown(f"""
+    **EXECUTIVE IMPACT SUMMARY**
+    * **Target Price Change:** `{price_change}%`
+    * **Predicted Volume Shift:** `{ (demand_impact * 100):.1f}%`
+    * **New Projected Total:** `${new_revenue:,.2f} ({diff_symbol}${revenue_delta:,.2f} vs current)`
+    * **Return Risk Level:** `{return_risk}` ({risk_msg})
+    * **Strategy Status:** `{is_optimized}`
+    """)
+    st.markdown("---")
+
+    # Revenue Curve Visualization
+    sim_prices = np.linspace(-50, 50, 50)
+    sim_revs = [total_revenue * (1 + p/100) * (1 + (p * elasticity / 100)) for p in sim_prices]
+    
+    fig_curve = px.line(x=sim_prices, y=sim_revs, 
+                        labels={'x': 'Price Change %', 'y': 'Revenue ($)'}, 
+                        title="REVENUE OPTIMIZATION CURVE")
+    
+    # Visual Indicators on Graph
+    fig_curve.add_vline(x=price_change, line_dash="dash", line_color="red", annotation_text="Current Selection")
+    fig_curve.add_vline(x=optimal_p, line_dash="dot", line_color="green", annotation_text="Mathematical Peak")
+    st.plotly_chart(fig_curve, use_container_width=True)
+
+# --- 6. RETURN LOGISTICS ANALYSIS ---
+st.markdown("---")
+st.markdown("### **RETURN LOGISTICS ANALYSIS**")
+
+st.write("""
+**What are we looking at here?** This section tracks the 'Return-to-Sale' relationship. 
+While lower prices can drive a massive spike in sales volume, they often attract 
+one-time shoppers who are more likely to return items. A successful price strategy 
+must balance **high volume** with **low returns** to protect actual profit.
+""")
+
+if 'is_returned' in df.columns:
+    return_rate = (df['is_returned'].sum() / len(df)) * 100
+    st.info(f"Current Dashboard Insight: Overall return rate is {return_rate:.1f}%. "
+            "Categories with higher markdowns typically show more returns related to quality perception.")
+
+    fig_box = px.box(df, x='category', y='markdown_percentage', color='is_returned',
+                     title="HOW MARKDOWNS IMPACT RETURNS BY CATEGORY",
+                     labels={'markdown_percentage': 'Markdown %', 'category': 'Product Group'})
+    
+    st.plotly_chart(fig_box, use_container_width=True)
+
+# --- 7. FOOTER ---
+st.markdown("---")
+st.caption("Developed by Bree Thomas | Data Business Analyst Portfolio | 2024")
+
